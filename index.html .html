@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClientFlow AI - Med Spa Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar-hidden {
+            transform: translateX(-100%);
+        }
+        .kpi-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-new { background-color: #3b82f6; } /* Blue */
+        .status-nurturing { background-color: #f59e0b; } /* Amber */
+        .status-set { background-color: #22c55e; } /* Green */
+        .status-unresponsive { background-color: #6b7280; } /* Gray */
+        .status-follow-up { background-color: #9333ea; } /* Purple */
+        .message-ai { background-color: #e5e7eb; align-self: flex-start; }
+        .message-lead { background-color: #dbeafe; align-self: flex-end; }
+        .pipeline-tab-button.active, .leads-tab-button.active {
+            border-color: #4f46e5;
+            color: #4f46e5;
+        }
+        .lead-card.selected {
+            box-shadow: 0 0 0 2px #4f46e5;
+            transform: scale(1.02);
+        }
+        /* Loader Animation */
+        .loader {
+            border: 5px solid #f3f3f3; /* Light grey */
+            border-top: 5px solid #4f46e5; /* Indigo */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <!-- Loading Screen -->
+    <div id="loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-100">
+        <div class="loader"></div>
+        <div class="mt-4 text-center">
+            <i class="fas fa-spa text-4xl text-indigo-600"></i>
+            <h2 class="mt-2 text-2xl font-extrabold text-gray-900">ClientFlow AI</h2>
+            <p class="text-sm text-gray-600">Loading your dashboard...</p>
+        </div>
+    </div>
+
+    <!-- Login/Auth Screen -->
+    <div id="auth-container" class="hidden flex items-center justify-center min-h-screen bg-gray-100">
+        <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+            <div class="text-center">
+                <i class="fas fa-spa text-4xl text-indigo-600"></i>
+                <h2 class="mt-4 text-3xl font-extrabold text-gray-900">ClientFlow AI</h2>
+                <p class="mt-2 text-sm text-gray-600">Sign in to your dashboard</p>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div id="auth-error" class="hidden p-3 text-sm text-red-700 bg-red-100 rounded-lg"></div>
+                <div>
+                    <label for="email" class="text-sm font-medium text-gray-700 sr-only">Email address</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Email address">
+                </div>
+                <div>
+                    <label for="password" class="text-sm font-medium text-gray-700 sr-only">Password</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Password">
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-900">Remember me</label>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Sign in</button>
+                </div>
+            </form>
+             <p class="text-sm text-center text-gray-600">
+                Don't have an account? 
+                <a href="#" id="show-signup" class="font-medium text-indigo-600 hover:text-indigo-500">Sign up</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="hidden flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 flex flex-col">
+            <div>
+                <a href="#" class="text-white flex items-center space-x-2 px-4">
+                    <i class="fas fa-spa text-2xl"></i>
+                    <span class="text-2xl font-extrabold">ClientFlow AI</span>
+                </a>
+                <nav class="mt-10">
+                    <a href="#" class="nav-link block py-2.5 px-4 rounded transition duration-200 bg-gray-700" data-tab="dashboard">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="#" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" data-tab="leads">
+                        <i class="fas fa-users mr-2"></i>Leads
+                    </a>
+                    <a href="#" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" data-tab="pipeline">
+                        <i class="fas fa-stream mr-2"></i>Pipeline
+                    </a>
+                    <a href="#" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700" data-tab="settings">
+                        <i class="fas fa-cog mr-2"></i>Settings
+                    </a>
+                </nav>
+            </div>
+            <div class="mt-auto">
+                 <a href="#" id="logout-btn" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="flex justify-between items-center p-4 bg-white border-b">
+                <div class="flex items-center">
+                    <button id="menu-button" class="text-gray-500 focus:outline-none md:hidden">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h1 id="header-title" class="text-2xl font-bold ml-4">Dashboard</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="user-email" class="font-semibold text-sm"></span>
+                    <img src="https://placehold.co/40x40/6366f1/ffffff?text=R" alt="User Avatar" class="rounded-full">
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <main id="main-content" class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                
+                <!-- Error Banner -->
+                <div id="error-banner" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow mb-6">
+                    <h3 class="font-bold">Connection Error</h3>
+                    <div id="error-message"></div>
+                </div>
+
+                <!-- Dashboard View -->
+                <div id="dashboard-tab" class="tab-content">
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <div class="kpi-card bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-medium text-gray-500">New Leads (30 Days)</h3>
+                            <p id="kpi-new-leads" class="text-3xl font-bold mt-2">0</p>
+                        </div>
+                        <div class="kpi-card bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Appointments Booked</h3>
+                            <p id="kpi-appointments-booked" class="text-3xl font-bold mt-2">0</p>
+                        </div>
+                        <div class="kpi-card bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Pipeline Value</h3>
+                            <p id="kpi-pipeline-value" class="text-3xl font-bold mt-2">$0</p>
+                        </div>
+                        <div class="kpi-card bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-medium text-gray-500">Cost per Appointment</h3>
+                            <p id="kpi-cost-per-appointment" class="text-3xl font-bold mt-2">$0</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Dashboard Columns -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Live Lead Feed -->
+                        <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold">Live Lead Feed</h3>
+                                <button id="add-lead-btn" class="bg-indigo-600 text-white px-3 py-1 rounded-md text-sm font-semibold hover:bg-indigo-700">Add Test Lead</button>
+                            </div>
+                            <div id="lead-feed-container" class="space-y-4">
+                                <!-- Leads will be dynamically inserted here -->
+                            </div>
+                        </div>
+                        <!-- Upcoming Appointments -->
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-xl font-bold mb-4">Upcoming Appointments</h3>
+                            <div id="appointments-container" class="space-y-4">
+                                <!-- Appointments will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leads View (Rebuilt with Single Column) -->
+                <div id="leads-tab" class="tab-content hidden">
+                    <!-- Lead Cards Grid -->
+                    <div id="leads-grid-wrapper" class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold">All Leads</h3>
+                             <input type="text" id="lead-search-input" placeholder="Search leads..." class="w-1/3 px-3 py-2 border rounded-md">
+                        </div>
+                        <div id="leads-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <!-- Lead cards will be generated here -->
+                        </div>
+                    </div>
+                    <!-- Conversation View -->
+                    <div id="conversation-wrapper" class="hidden">
+                         <button id="back-to-leads-btn" class="mb-4 text-sm font-semibold text-indigo-600 hover:underline"><i class="fas fa-arrow-left mr-2"></i>Back to All Leads</button>
+                        <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col h-full">
+                             <div class="p-4 border-b flex-shrink-0">
+                                <div class="flex justify-between items-center mb-2">
+                                    <div>
+                                        <h3 id="conv-lead-name" class="font-bold text-lg"></h3>
+                                        <p id="conv-lead-service" class="text-sm text-gray-500"></p>
+                                    </div>
+                                    <button id="pause-ai-btn" class="bg-yellow-500 text-white px-3 py-1 rounded-md text-sm font-semibold hover:bg-yellow-600">
+                                        <i class="fas fa-pause mr-1"></i> Pause AI
+                                    </button>
+                                </div>
+                                <div class="text-xs text-gray-400">
+                                    <span id="conv-lead-contact"></span> | <span id="conv-lead-date"></span>
+                                </div>
+                            </div>
+                            <div id="conv-messages" class="flex-1 p-4 space-y-4 overflow-y-auto flex flex-col">
+                                <!-- Messages will be inserted here -->
+                            </div>
+                            <div class="p-4 border-t bg-gray-50 flex-shrink-0">
+                                <h4 class="text-sm font-bold mb-2">Private Notes</h4>
+                                <textarea id="lead-notes" class="w-full h-20 p-2 border rounded-md text-sm" placeholder="Add a note..."></textarea>
+                                <button id="save-note-btn" class="mt-2 bg-gray-600 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-gray-700">Save Note</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pipeline View -->
+                <div id="pipeline-tab" class="tab-content hidden bg-white rounded-lg shadow">
+                    <!-- Tab Navigation -->
+                    <div class="border-b border-gray-200">
+                        <nav id="pipeline-tabs" class="-mb-px flex flex-wrap space-x-6 px-6" aria-label="Tabs">
+                            <!-- Tabs will be dynamically generated by JS -->
+                        </nav>
+                    </div>
+                    <!-- Tab Content -->
+                    <div id="pipeline-content" class="p-6">
+                        <!-- Lead lists will be dynamically generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div id="settings-tab" class="tab-content hidden">
+                    <div class="bg-white p-8 rounded-lg shadow max-w-2xl mx-auto">
+                        <h2 class="text-2xl font-bold mb-6">Settings</h2>
+                        <div class="space-y-8">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900">Business Profile</h3>
+                                <p class="mt-1 text-sm text-gray-500">This information will be used to personalize AI conversations.</p>
+                                <div class="mt-4">
+                                    <label for="business-name" class="block text-sm font-medium text-gray-700">Med Spa Name</label>
+                                    <input type="text" id="business-name" value="Radiant Med Spa" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                </div>
+                            </div>
+                            <div class="border-t pt-8">
+                                <h3 class="text-lg font-medium text-gray-900">SMS & Calling Setup</h3>
+                                <p class="mt-1 text-sm text-gray-500">Enter your main business line. We will handle the integration to allow the AI to send messages on your behalf.</p>
+                                <div class="mt-4">
+                                    <label for="business-phone" class="block text-sm font-medium text-gray-700">Business Phone Number</label>
+                                    <div class="mt-1 flex rounded-md shadow-sm">
+                                        <input type="tel" id="business-phone" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-l-md" placeholder="(555) 123-4567">
+                                        <button id="verify-phone-btn" class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-700 rounded-r-md text-sm font-medium hover:bg-gray-100">Verify Now</button>
+                                    </div>
+                                    <p id="phone-status" class="mt-2 text-sm text-yellow-600 font-semibold">Status: Pending Verification</p>
+                                </div>
+                            </div>
+                             <div class="border-t pt-8">
+                                <h3 class="text-lg font-medium text-gray-900">Financial Settings</h3>
+                                <p class="mt-1 text-sm text-gray-500">These values are used to calculate your dashboard KPIs.</p>
+                                <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+                                    <div>
+                                        <label for="client-value" class="block text-sm font-medium text-gray-700">Average Client Value ($)</label>
+                                        <input type="number" id="client-value" value="500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                    </div>
+                                    <div>
+                                        <label for="cost-per-appointment-setting" class="block text-sm font-medium text-gray-700">Your Cost Per Appointment ($)</label>
+                                        <input type="number" id="cost-per-appointment-setting" value="175" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, query, where, getDoc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYzAet0qog2NI9z0--9DwytTZfmhnGmJw",
+            authDomain: "clientflow-ai-606b7.firebaseapp.com",
+            projectId: "clientflow-ai-606b7",
+            storageBucket: "clientflow-ai-606b7.appspot.com",
+            messagingSenderId: "938562800610",
+            appId: "1:938562800610:web:9ca0e4bd42098f4d5247bb",
+            measurementId: "G-1957GBQB37"
+        };
+        
+        try {
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            // --- DOM ELEMENTS ---
+            const loader = document.getElementById('loader');
+            const authContainer = document.getElementById('auth-container');
+            const appContainer = document.getElementById('app-container');
+            const loginForm = document.getElementById('login-form');
+            const authError = document.getElementById('auth-error');
+            const showSignup = document.getElementById('show-signup');
+            const logoutBtn = document.getElementById('logout-btn');
+            const userEmailEl = document.getElementById('user-email');
+            const rememberMeCheckbox = document.getElementById('remember-me');
+
+            const sidebar = document.getElementById('sidebar');
+            const menuButton = document.getElementById('menu-button');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const headerTitle = document.getElementById('header-title');
+            const addLeadBtn = document.getElementById('add-lead-btn');
+            const errorBanner = document.getElementById('error-banner');
+            const errorMessage = document.getElementById('error-message');
+            const leadSearchInput = document.getElementById('lead-search-input');
+            const saveNoteBtn = document.getElementById('save-note-btn');
+            const leadNotesTextarea = document.getElementById('lead-notes');
+            const leadsGridWrapper = document.getElementById('leads-grid-wrapper');
+            const conversationWrapper = document.getElementById('conversation-wrapper');
+            const backToLeadsBtn = document.getElementById('back-to-leads-btn');
+            const clientValueInput = document.getElementById('client-value');
+            const costPerAppointmentInput = document.getElementById('cost-per-appointment-setting');
+
+            // --- GLOBAL STATE ---
+            let allLeads = [];
+            let allAppointments = [];
+            let userSettings = { clientValue: 500, costPerAppointment: 175 };
+            let selectedLeadId = null;
+            let unsubscribeLeads = null; 
+            let unsubscribeAppointments = null;
+            let unsubscribeSettings = null;
+            const pipelineStages = ['New Lead', 'AI Nurturing', 'Appointment Set', 'Consultation Complete', 'Client Won'];
+
+            // --- ERROR HANDLING ---
+            function showError(message) {
+                let friendlyMessage = message;
+                if (message.includes("Missing or insufficient permissions")) {
+                    friendlyMessage = `<strong>${message}</strong><br>This is a Firebase security rule issue. Please go to your Firestore 'Rules' tab and ensure they allow 'create' and 'read' operations for authenticated users on the 'leads' and 'appointments' collections.`;
+                }
+                errorMessage.innerHTML = friendlyMessage;
+                errorBanner.classList.remove('hidden');
+            }
+
+            // --- AUTHENTICATION LOGIC ---
+            onAuthStateChanged(auth, user => {
+                loader.classList.add('hidden'); // Hide loader once auth state is known
+                if (user) {
+                    // User is signed in
+                    authContainer.classList.add('hidden');
+                    appContainer.classList.remove('hidden');
+                    appContainer.classList.add('flex');
+                    userEmailEl.textContent = user.email;
+                    initAppForUser(user);
+                } else {
+                    // User is signed out
+                    authContainer.classList.remove('hidden');
+                    authContainer.classList.add('flex');
+                    appContainer.classList.add('hidden');
+                    appContainer.classList.remove('flex');
+                    if (unsubscribeLeads) unsubscribeLeads();
+                    if (unsubscribeAppointments) unsubscribeAppointments();
+                    if (unsubscribeSettings) unsubscribeSettings();
+                }
+            });
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = loginForm.email.value;
+                const password = loginForm.password.value;
+                const rememberMe = rememberMeCheckbox.checked;
+                const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+
+                const isSignUp = loginForm.querySelector('button[type=submit]').textContent === 'Sign up';
+                
+                setPersistence(auth, persistence)
+                    .then(() => {
+                        if (isSignUp) {
+                            return createUserWithEmailAndPassword(auth, email, password);
+                        } else {
+                            return signInWithEmailAndPassword(auth, email, password);
+                        }
+                    })
+                    .catch(error => {
+                        authError.textContent = error.message;
+                        authError.classList.remove('hidden');
+                    });
+            });
+
+            showSignup.addEventListener('click', (e) => {
+                e.preventDefault();
+                const submitBtn = loginForm.querySelector('button[type=submit]');
+                const prompt = loginForm.parentElement.querySelector('p.text-sm');
+                if (submitBtn.textContent === 'Sign in') {
+                    submitBtn.textContent = 'Sign up';
+                    prompt.innerHTML = `Already have an account? <a href="#" id="show-login" class="font-medium text-indigo-600 hover:text-indigo-500">Sign in</a>`;
+                    document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); showSignup.click(); });
+                } else {
+                    submitBtn.textContent = 'Sign in';
+                    prompt.innerHTML = `Don't have an account? <a href="#" id="show-signup" class="font-medium text-indigo-600 hover:text-indigo-500">Sign up</a>`;
+                    document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); showSignup.click(); });
+                }
+            });
+
+            logoutBtn.addEventListener('click', () => {
+                signOut(auth);
+            });
+
+            // --- INITIALIZATION (POST-LOGIN) ---
+            function initAppForUser(user) {
+                setupEventListeners();
+                listenForSettings(user.uid);
+                listenForLeads(user.uid);
+                listenForAppointments(user.uid);
+            }
+
+            // --- FIREBASE REAL-TIME LISTENERS (SECURED) ---
+            function listenForLeads(userId) {
+                if (unsubscribeLeads) unsubscribeLeads(); 
+
+                const leadsQuery = query(collection(db, 'leads'), where("ownerId", "==", userId));
+                
+                unsubscribeLeads = onSnapshot(leadsQuery, (snapshot) => {
+                    errorBanner.classList.add('hidden');
+                    allLeads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    allLeads.sort((a, b) => (a.createdAt?.toDate() || 0) - (b.createdAt?.toDate() || 0)); 
+                    
+                    renderDashboard();
+                    renderLeadsPage();
+                    renderPipeline();
+                    if (selectedLeadId) {
+                        renderConversation(selectedLeadId);
+                    }
+                }, (error) => {
+                    console.error("Error listening for leads:", error);
+                    showError(error.message);
+                });
+            }
+
+            function listenForAppointments(userId) {
+                if (unsubscribeAppointments) unsubscribeAppointments();
+
+                const apptsQuery = query(collection(db, 'appointments'), where("ownerId", "==", userId));
+                unsubscribeAppointments = onSnapshot(apptsQuery, (snapshot) => {
+                    allAppointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderDashboard();
+                }, (error) => {
+                    console.error("Error listening for appointments:", error);
+                    showError(error.message);
+                });
+            }
+
+            function listenForSettings(userId) {
+                if (unsubscribeSettings) unsubscribeSettings();
+                const settingsRef = doc(db, "settings", userId);
+                unsubscribeSettings = onSnapshot(settingsRef, (doc) => {
+                    if (doc.exists()) {
+                        userSettings = doc.data();
+                        clientValueInput.value = userSettings.clientValue;
+                        costPerAppointmentInput.value = userSettings.costPerAppointment;
+                    }
+                    renderDashboard(); // Re-render dashboard with new settings
+                });
+            }
+
+            // --- RENDER FUNCTIONS ---
+            function renderDashboard() {
+                document.getElementById('kpi-new-leads').textContent = allLeads.length;
+                document.getElementById('kpi-appointments-booked').textContent = allAppointments.length;
+                const pipelineValue = allAppointments.length * (userSettings.clientValue || 500);
+                document.getElementById('kpi-pipeline-value').textContent = `$${pipelineValue.toLocaleString()}`;
+                const costPerAppointment = allAppointments.length > 0 ? (userSettings.costPerAppointment || 175) : 0;
+                document.getElementById('kpi-cost-per-appointment').textContent = `$${costPerAppointment.toFixed(0)}`;
+
+                const leadFeedContainer = document.getElementById('lead-feed-container');
+                leadFeedContainer.innerHTML = '';
+                [...allLeads].reverse().slice(0, 5).forEach(lead => {
+                    const leadEl = document.createElement('div');
+                    leadEl.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-md';
+                    leadEl.innerHTML = `
+                        <div>
+                            <p class="font-semibold">${lead.name}</p>
+                            <p class="text-sm text-gray-500">${lead.service}</p>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="status-dot status-${lead.status}"></span>
+                            <span class="text-sm font-medium capitalize">${lead.status}</span>
+                        </div>`;
+                    leadFeedContainer.appendChild(leadEl);
+                });
+
+                const appointmentsContainer = document.getElementById('appointments-container');
+                appointmentsContainer.innerHTML = '';
+                if (allAppointments.length === 0) {
+                    appointmentsContainer.innerHTML = `<p class="text-sm text-gray-500 text-center">No upcoming appointments.</p>`;
+                } else {
+                    allAppointments.forEach(appt => {
+                        const apptEl = document.createElement('div');
+                        apptEl.className = 'p-3 bg-blue-50 rounded-md border-l-4 border-blue-500';
+                        apptEl.innerHTML = `
+                            <p class="font-semibold">${appt.leadName}</p>
+                            <p class="text-sm text-gray-600">${appt.service} Consultation</p>
+                            <p class="text-sm text-gray-500 mt-1"><i class="far fa-clock mr-1"></i> ${appt.appointmentDate}</p>`;
+                        appointmentsContainer.appendChild(apptEl);
+                    });
+                }
+            }
+
+            function renderLeadsPage(searchTerm = '') {
+                const gridContainer = document.getElementById('leads-grid-container');
+                gridContainer.innerHTML = '';
+
+                const filteredLeads = allLeads.filter(lead => 
+                    lead.name.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+
+                if (filteredLeads.length === 0) {
+                    gridContainer.innerHTML = `<p class="text-center text-gray-500 p-8">No leads found.</p>`;
+                    return;
+                }
+                
+                filteredLeads.forEach(lead => {
+                    const card = document.createElement('div');
+                    card.className = `lead-card p-4 bg-white rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow duration-200`;
+                    card.dataset.leadId = lead.id;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold text-gray-800">${lead.name}</p>
+                                <p class="text-xs text-gray-500">${lead.service}</p>
+                            </div>
+                            <div class="flex items-center text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                                <span class="status-dot status-${lead.status}"></span>
+                                <span class="capitalize">${lead.status}</span>
+                            </div>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        selectedLeadId = lead.id;
+                        renderConversation(lead.id);
+                    });
+                    gridContainer.appendChild(card);
+                });
+            }
+
+            function renderConversation(leadId) {
+                const lead = allLeads.find(l => l.id === leadId);
+                if (!lead) return;
+
+                leadsGridWrapper.classList.add('hidden');
+                conversationWrapper.classList.remove('hidden');
+
+                document.getElementById('conv-lead-name').textContent = lead.name;
+                document.getElementById('conv-lead-service').textContent = lead.service;
+                document.getElementById('conv-lead-contact').textContent = lead.phone || 'No contact info';
+                document.getElementById('conv-lead-date').textContent = `Added: ${lead.createdAt.toDate().toLocaleDateString()}`;
+                
+                leadNotesTextarea.value = lead.notes || '';
+
+                const messagesContainer = document.getElementById('conv-messages');
+                messagesContainer.innerHTML = '';
+                if (lead.conversation) {
+                    lead.conversation.forEach(msg => {
+                        const msgEl = document.createElement('div');
+                        msgEl.className = `p-3 rounded-lg max-w-xs message-${msg.from}`;
+                        msgEl.textContent = msg.text;
+                        messagesContainer.appendChild(msgEl);
+                    });
+                }
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            function renderPipeline() {
+                const pipelineTab = document.getElementById('pipeline-tab');
+                const tabsContainer = document.getElementById('pipeline-tabs');
+                const contentContainer = document.getElementById('pipeline-content');
+                tabsContainer.innerHTML = '';
+                contentContainer.innerHTML = '';
+
+                let activeStage = tabsContainer.querySelector('.active')?.dataset.stage || pipelineStages[0];
+
+                pipelineStages.forEach((stage, index) => {
+                    const leadsInStage = allLeads.filter(l => l.pipelineStage === stage);
+                    const leadCount = leadsInStage.length;
+
+                    const tabButton = document.createElement('button');
+                    tabButton.className = `pipeline-tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`;
+                    tabButton.dataset.stage = stage;
+                    tabButton.innerHTML = `${stage} <span class="ml-2 inline-block py-0.5 px-2 rounded-full text-xs font-medium bg-gray-200 text-gray-800">${leadCount}</span>`;
+                    
+                    if (stage === activeStage) {
+                        tabButton.classList.add('active', 'border-indigo-500', 'text-indigo-600');
+                    } else {
+                        tabButton.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                    }
+                    tabsContainer.appendChild(tabButton);
+
+                    const contentPane = document.createElement('div');
+                    contentPane.id = `pipeline-content-${stage.replace(/\s+/g, '-')}`;
+                    contentPane.className = 'pipeline-content-pane';
+                    if (stage !== activeStage) {
+                        contentPane.classList.add('hidden');
+                    }
+                    
+                    if (leadCount > 0) {
+                        const table = document.createElement('table');
+                        table.className = 'min-w-full divide-y divide-gray-200';
+                        table.innerHTML = `
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                                    <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                            </tbody>
+                        `;
+                        const tbody = table.querySelector('tbody');
+                        leadsInStage.forEach(lead => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">${lead.name}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">${lead.service}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex items-center justify-end space-x-2">
+                                    <select class="move-lead-dropdown rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" data-lead-id="${lead.id}">
+                                        <option value="">Move to...</option>
+                                        ${pipelineStages.filter(s => s !== stage).map(s => `<option value="${s}">${s}</option>`).join('')}
+                                    </select>
+                                    <button class="delete-lead-btn text-gray-400 hover:text-red-600" data-lead-id="${lead.id}"><i class="fas fa-trash-alt"></i></button>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                        contentPane.appendChild(table);
+                    } else {
+                        contentPane.innerHTML = `<p class="text-center text-gray-500 py-8">No leads in this stage.</p>`;
+                    }
+                    contentContainer.appendChild(contentPane);
+                });
+            }
+
+            // --- EVENT LISTENERS & ACTIONS ---
+            function setupEventListeners() {
+                menuButton.addEventListener('click', () => {
+                    sidebar.classList.toggle('sidebar-hidden');
+                });
+
+                navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const tab = e.currentTarget.dataset.tab;
+
+                        navLinks.forEach(l => l.classList.remove('bg-gray-700'));
+                        e.currentTarget.classList.add('bg-gray-700');
+
+                        tabContents.forEach(content => content.classList.add('hidden'));
+                        document.getElementById(`${tab}-tab`).classList.remove('hidden');
+                        
+                        headerTitle.textContent = tab.charAt(0).toUpperCase() + tab.slice(1);
+                    });
+                });
+
+                addLeadBtn.addEventListener('click', async () => {
+                    const user = auth.currentUser;
+                    if (!user) return;
+
+                    const names = ['Olivia Davis', 'Liam Garcia', 'Ava Martinez', 'Noah Brown', 'Emma Jones'];
+                    const services = ['Chemical Peel', 'HydraFacial', 'Laser Genesis', 'VI Peel', 'Botox'];
+                    const randomName = names[Math.floor(Math.random() * names.length)];
+                    const randomService = services[Math.floor(Math.random() * services.length)];
+
+                    // --- Duplicate Check ---
+                    const q = query(collection(db, "leads"), where("name", "==", randomName), where("ownerId", "==", user.uid));
+                    const querySnapshot = await getDocs(q);
+                    if (!querySnapshot.empty) {
+                        console.log(`Duplicate lead found for ${randomName}. Skipping.`);
+                        // Optionally, show a non-blocking notification to the user
+                        return;
+                    }
+
+                    const newLead = {
+                        name: randomName,
+                        service: randomService,
+                        status: 'new',
+                        pipelineStage: 'New Lead',
+                        createdAt: new Date(),
+                        ownerId: user.uid, // Assign lead to the current user
+                        phone: `(555) ${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`,
+                        notes: '',
+                        conversation: [
+                            { from: 'ai', text: `Hi ${randomName.split(' ')[0]}! This is Sarah from Radiant Med Spa. Thanks for your interest in a ${randomService}! Are you available for a quick chat sometime tomorrow?` }
+                        ]
+                    };
+                    
+                    try {
+                        const docRef = await addDoc(collection(db, 'leads'), newLead);
+                        console.log("Test lead added to Firestore with ID: ", docRef.id);
+
+                        setTimeout(async () => {
+                            const leadToUpdateRef = doc(db, "leads", docRef.id);
+                            try {
+                                await updateDoc(leadToUpdateRef, {
+                                    pipelineStage: "AI Nurturing",
+                                    status: "nurturing"
+                                });
+                            } catch (e) {
+                                console.error("Error auto-updating lead: ", e);
+                            }
+                        }, 10000);
+
+                    } catch (e) {
+                        console.error("Error adding document: ", e);
+                        showError(e.message);
+                    }
+                });
+                
+                backToLeadsBtn.addEventListener('click', () => {
+                    conversationWrapper.classList.add('hidden');
+                    leadsGridWrapper.classList.remove('hidden');
+                    selectedLeadId = null;
+                });
+
+                leadSearchInput.addEventListener('input', (e) => {
+                    renderLeadsPage(e.target.value);
+                });
+
+                saveNoteBtn.addEventListener('click', async () => {
+                    if (!selectedLeadId) return;
+                    const leadRef = doc(db, 'leads', selectedLeadId);
+                    try {
+                        await updateDoc(leadRef, { notes: leadNotesTextarea.value });
+                        // Visual feedback
+                        saveNoteBtn.textContent = 'Saved!';
+                        saveNoteBtn.classList.add('bg-green-500');
+                        setTimeout(() => {
+                            saveNoteBtn.textContent = 'Save Note';
+                            saveNoteBtn.classList.remove('bg-green-500');
+                        }, 2000);
+                    } catch (error) {
+                        showError("Could not save note.");
+                    }
+                });
+                
+                async function updateSettings() {
+                    const user = auth.currentUser;
+                    if (!user) return;
+                    const settingsRef = doc(db, "settings", user.uid);
+                    const newSettings = {
+                        clientValue: parseFloat(clientValueInput.value) || 500,
+                        costPerAppointment: parseFloat(costPerAppointmentInput.value) || 175
+                    };
+                    await setDoc(settingsRef, newSettings, { merge: true });
+                }
+
+                clientValueInput.addEventListener('change', updateSettings);
+                costPerAppointmentInput.addEventListener('change', updateSettings);
+
+                // --- Event delegation for tab clicks ---
+                document.getElementById('pipeline-tabs').addEventListener('click', (e) => {
+                    const button = e.target.closest('.pipeline-tab-button');
+                    if (button) {
+                        const selectedStage = button.dataset.stage;
+                        document.querySelectorAll('.pipeline-tab-button').forEach(btn => btn.classList.remove('active', 'border-indigo-500', 'text-indigo-600'));
+                        button.classList.add('active', 'border-indigo-500', 'text-indigo-600');
+                        document.querySelectorAll('.pipeline-content-pane').forEach(pane => pane.classList.add('hidden'));
+                        document.getElementById(`pipeline-content-${selectedStage.replace(/\s+/g, '-')}`).classList.remove('hidden');
+                    }
+                });
+
+                 document.getElementById('pipeline-content').addEventListener('change', async (e) => {
+                    if (e.target.classList.contains('move-lead-dropdown')) {
+                        const newStage = e.target.value;
+                        const leadId = e.target.dataset.leadId;
+                        if (!newStage) return;
+
+                        const leadRef = doc(db, 'leads', leadId);
+                        try {
+                            await updateDoc(leadRef, { pipelineStage: newStage });
+                        } catch (error) {
+                            showError("Could not update lead stage.");
+                        }
+                    }
+                });
+                
+                document.getElementById('pipeline-content').addEventListener('click', async (e) => {
+                    if (e.target.closest('.delete-lead-btn')) {
+                        const leadId = e.target.closest('.delete-lead-btn').dataset.leadId;
+                        try {
+                            await deleteDoc(doc(db, "leads", leadId));
+                            console.log(`Lead ${leadId} deleted.`);
+                        } catch(error) {
+                            showError("Could not delete lead.");
+                        }
+                    }
+                });
+            }
+
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
+            const mainContent = document.getElementById('main-content');
+            if(mainContent) {
+                mainContent.innerHTML = `
+                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow max-w-4xl mx-auto">
+                        <h3 class="font-bold">Firebase Configuration Error</h3>
+                        <p>The application could not start because the Firebase configuration is missing or invalid. Please paste your project's configuration object into the script to connect to the database.</p>
+                        <p class="mt-2 text-sm">Error details: ${e.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
