@@ -102,7 +102,7 @@
                 </div>
             </form>
              <p class="text-sm text-center text-gray-600">
-                Don't have an account? 
+                Don't have an account?
                 <a href="#" id="show-signup" class="font-medium text-indigo-600 hover:text-indigo-500">Sign up</a>
             </p>
         </div>
@@ -151,13 +151,13 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <span id="user-email" class="font-semibold text-sm"></span>
-                    <img src="https://placehold.co/40x40/6366f1/ffffff?text=R" alt="User Avatar" class="rounded-full">
+                    <img src="https://placehold.co/40x40/6366f1/ffffff?text=U" alt="User Avatar" class="rounded-full">
                 </div>
             </header>
 
             <!-- Content Area -->
             <main id="main-content" class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-                
+
                 <!-- Error Banner -->
                 <div id="error-banner" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow mb-6">
                     <h3 class="font-bold">Connection Error</h3>
@@ -185,14 +185,13 @@
                             <p id="kpi-cost-per-appointment" class="text-3xl font-bold mt-2">$0</p>
                         </div>
                     </div>
-                    
+
                     <!-- Main Dashboard Columns -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <!-- Live Lead Feed -->
                         <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-xl font-bold">Live Lead Feed</h3>
-                                <button id="add-lead-btn" class="bg-indigo-600 text-white px-3 py-1 rounded-md text-sm font-semibold hover:bg-indigo-700">Add Test Lead</button>
                             </div>
                             <div id="lead-feed-container" class="space-y-4">
                                 <!-- Leads will be dynamically inserted here -->
@@ -214,7 +213,10 @@
                     <div id="leads-grid-wrapper" class="bg-white p-6 rounded-lg shadow">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-xl font-bold">All Leads</h3>
-                             <input type="text" id="lead-search-input" placeholder="Search leads..." class="w-1/3 px-3 py-2 border rounded-md">
+                            <div class="flex items-center space-x-4">
+                                <input type="text" id="lead-search-input" placeholder="Search leads..." class="w-64 px-3 py-2 border rounded-md">
+                                <button id="open-add-lead-modal-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-indigo-700"><i class="fas fa-plus mr-2"></i>Add Lead</button>
+                            </div>
                         </div>
                         <div id="leads-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             <!-- Lead cards will be generated here -->
@@ -277,16 +279,31 @@
                                     <input type="text" id="business-name" value="Radiant Med Spa" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                                 </div>
                             </div>
+                            <!-- Calendar Connection Section -->
                             <div class="border-t pt-8">
-                                <h3 class="text-lg font-medium text-gray-900">SMS & Calling Setup</h3>
-                                <p class="mt-1 text-sm text-gray-500">Enter your main business line. We will handle the integration to allow the AI to send messages on your behalf.</p>
-                                <div class="mt-4">
-                                    <label for="business-phone" class="block text-sm font-medium text-gray-700">Business Phone Number</label>
-                                    <div class="mt-1 flex rounded-md shadow-sm">
-                                        <input type="tel" id="business-phone" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-l-md" placeholder="(555) 123-4567">
-                                        <button id="verify-phone-btn" class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-700 rounded-r-md text-sm font-medium hover:bg-gray-100">Verify Now</button>
+                                <h3 class="text-lg font-medium text-gray-900">Calendar Connection</h3>
+                                <p class="mt-1 text-sm text-gray-500">Connect your calendar to automatically sync appointments booked by the AI.</p>
+                                <div class="mt-4 space-y-4">
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                                        <div class="flex items-center">
+                                            <i class="fab fa-google text-xl text-red-500 mr-4"></i>
+                                            <div>
+                                                <p class="font-semibold">Google Calendar</p>
+                                                <p class="text-xs text-gray-500">Status: <span id="google-cal-status" class="font-bold text-gray-600">Not Connected</span></p>
+                                            </div>
+                                        </div>
+                                        <button id="connect-google-cal-btn" class="bg-white text-gray-700 px-4 py-2 rounded-md text-sm font-semibold border border-gray-300 hover:bg-gray-100">Connect</button>
                                     </div>
-                                    <p id="phone-status" class="mt-2 text-sm text-yellow-600 font-semibold">Status: Pending Verification</p>
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                                        <div class="flex items-center">
+                                            <i class="fab fa-microsoft text-xl text-blue-600 mr-4"></i>
+                                            <div>
+                                                <p class="font-semibold">Outlook Calendar</p>
+                                                <p class="text-xs text-gray-500">Status: <span id="outlook-cal-status" class="font-bold text-gray-600">Not Connected</span></p>
+                                            </div>
+                                        </div>
+                                        <button id="connect-outlook-cal-btn" class="bg-white text-gray-700 px-4 py-2 rounded-md text-sm font-semibold border border-gray-300 hover:bg-gray-100">Connect</button>
+                                    </div>
                                 </div>
                             </div>
                              <div class="border-t pt-8">
@@ -311,12 +328,81 @@
         </div>
     </div>
 
+    <!-- Add Lead Modal -->
+    <div id="add-lead-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-40">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+             <form id="add-lead-form">
+                <div class="flex justify-between items-center pb-3 border-b">
+                    <p class="text-2xl font-bold">Add New Lead</p>
+                    <button type="button" id="close-add-lead-modal-btn" class="cursor-pointer z-50">
+                        <i class="fas fa-times text-gray-400"></i>
+                    </button>
+                </div>
+                <div class="mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+                    <div>
+                        <label for="lead-name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="lead-name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                    <div>
+                        <label for="lead-phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <input type="tel" id="lead-phone" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="lead-service" class="block text-sm font-medium text-gray-700">Service of Interest</label>
+                        <input type="text" id="lead-service" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    </div>
+                </div>
+                <div class="pt-6 border-t mt-6 flex justify-end">
+                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-md text-sm font-semibold hover:bg-indigo-700">Save Lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
     <!-- Firebase SDK -->
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, query, where, getDoc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        /*
+        ============================================================================
+        === URGENT: FIX FOR FIREBASE PERMISSIONS ERROR =============================
+        ============================================================================
+        To fix the "Missing or insufficient permissions" error, you MUST update
+        your Firestore Security Rules.
+
+        1. Go to your Firebase project console.
+        2. Navigate to Firestore Database > Rules tab.
+        3. Replace the entire content of the rules editor with the following:
+
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            // Users can only read, write and delete their own leads
+            match /leads/{leadId} {
+              allow read, write, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
+            }
+            // Users can create new leads if they are the owner
+            match /leads/{leadId} {
+              allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+            }
+            // Users can only read, write and delete their own appointments
+            match /appointments/{appointmentId} {
+                allow read, write, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
+            }
+            // Users can create new appointments if they are the owner
+             match /appointments/{appointmentId} {
+                allow create: if request.auth != null && request.auth.uid == request.resource.data.ownerId;
+            }
+          }
+        }
+
+        4. Click "Publish". The app should now work correctly after you log in.
+        ============================================================================
+        */
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
@@ -351,7 +437,6 @@
             const navLinks = document.querySelectorAll('.nav-link');
             const tabContents = document.querySelectorAll('.tab-content');
             const headerTitle = document.getElementById('header-title');
-            const addLeadBtn = document.getElementById('add-lead-btn');
             const errorBanner = document.getElementById('error-banner');
             const errorMessage = document.getElementById('error-message');
             const leadSearchInput = document.getElementById('lead-search-input');
@@ -362,6 +447,11 @@
             const backToLeadsBtn = document.getElementById('back-to-leads-btn');
             const clientValueInput = document.getElementById('client-value');
             const costPerAppointmentInput = document.getElementById('cost-per-appointment-setting');
+            const addLeadModal = document.getElementById('add-lead-modal');
+            const openAddLeadModalBtn = document.getElementById('open-add-lead-modal-btn');
+            const closeAddLeadModalBtn = document.getElementById('close-add-lead-modal-btn');
+            const addLeadForm = document.getElementById('add-lead-form');
+
 
             // --- GLOBAL STATE ---
             let allLeads = [];
@@ -541,7 +631,7 @@
                         apptEl.innerHTML = `
                             <p class="font-semibold">${appt.leadName}</p>
                             <p class="text-sm text-gray-600">${appt.service} Consultation</p>
-                            <p class="text-sm text-gray-500 mt-1"><i class="far fa-clock mr-1"></i> ${appt.appointmentDate}</p>`;
+                            <p class="text-sm text-gray-500 mt-1"><i class="far fa-clock mr-1"></i> ${new Date(appt.appointmentDate).toLocaleString()}</p>`;
                         appointmentsContainer.appendChild(apptEl);
                     });
                 }
@@ -706,41 +796,45 @@
                     });
                 });
 
-                addLeadBtn.addEventListener('click', async () => {
+                openAddLeadModalBtn.addEventListener('click', () => {
+                    addLeadModal.classList.remove('hidden');
+                });
+                closeAddLeadModalBtn.addEventListener('click', () => {
+                    addLeadModal.classList.add('hidden');
+                });
+
+                addLeadForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
                     const user = auth.currentUser;
                     if (!user) return;
 
-                    const names = ['Olivia Davis', 'Liam Garcia', 'Ava Martinez', 'Noah Brown', 'Emma Jones'];
-                    const services = ['Chemical Peel', 'HydraFacial', 'Laser Genesis', 'VI Peel', 'Botox'];
-                    const randomName = names[Math.floor(Math.random() * names.length)];
-                    const randomService = services[Math.floor(Math.random() * services.length)];
+                    const leadName = document.getElementById('lead-name').value;
+                    const leadPhone = document.getElementById('lead-phone').value;
+                    const leadService = document.getElementById('lead-service').value;
 
-                    // --- Duplicate Check ---
-                    const q = query(collection(db, "leads"), where("name", "==", randomName), where("ownerId", "==", user.uid));
-                    const querySnapshot = await getDocs(q);
-                    if (!querySnapshot.empty) {
-                        console.log(`Duplicate lead found for ${randomName}. Skipping.`);
-                        // Optionally, show a non-blocking notification to the user
-                        return;
+                    if (!leadName || !leadPhone || !leadService) {
+                        return; // Basic validation
                     }
 
                     const newLead = {
-                        name: randomName,
-                        service: randomService,
+                        name: leadName,
+                        phone: leadPhone,
+                        service: leadService,
                         status: 'new',
                         pipelineStage: 'New Lead',
                         createdAt: new Date(),
-                        ownerId: user.uid, // Assign lead to the current user
-                        phone: `(555) ${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`,
+                        ownerId: user.uid,
                         notes: '',
                         conversation: [
-                            { from: 'ai', text: `Hi ${randomName.split(' ')[0]}! This is Sarah from Radiant Med Spa. Thanks for your interest in a ${randomService}! Are you available for a quick chat sometime tomorrow?` }
+                            { from: 'ai', text: `Hi ${leadName.split(' ')[0]}! This is Sarah from Radiant Med Spa. Thanks for your interest in a ${leadService}! Are you available for a quick chat sometime tomorrow?` }
                         ]
                     };
                     
                     try {
                         const docRef = await addDoc(collection(db, 'leads'), newLead);
-                        console.log("Test lead added to Firestore with ID: ", docRef.id);
+                        console.log("Lead added to Firestore with ID: ", docRef.id);
+                        addLeadForm.reset();
+                        addLeadModal.classList.add('hidden');
 
                         setTimeout(async () => {
                             const leadToUpdateRef = doc(db, "leads", docRef.id);
@@ -829,8 +923,11 @@
                 });
                 
                 document.getElementById('pipeline-content').addEventListener('click', async (e) => {
-                    if (e.target.closest('.delete-lead-btn')) {
-                        const leadId = e.target.closest('.delete-lead-btn').dataset.leadId;
+                    const deleteButton = e.target.closest('.delete-lead-btn');
+                    if (deleteButton) {
+                        const leadId = deleteButton.dataset.leadId;
+                        // Since confirm() is blocked, we will delete directly for this prototype.
+                        // In a real app, you would build a custom modal confirmation.
                         try {
                             await deleteDoc(doc(db, "leads", leadId));
                             console.log(`Lead ${leadId} deleted.`);
